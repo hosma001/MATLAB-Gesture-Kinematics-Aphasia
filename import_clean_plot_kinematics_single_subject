@@ -1,0 +1,911 @@
+%Haroon Osmanzada - MATLAB code written for MSME Degree
+%This MATLAB code is used to import exported data from TheMotionMonitor
+%for each individual. This was written to compute one subject at a 
+%time. All data was exported from this code into a MS Excel sheet. Each 
+%time a new subject’s data was calculated the user needs to change the 
+%sheet name. That MS Excel file is then run in another MATLAB program 
+%which plots all of the combined subjects in one MS Excel file. This 
+%program plots the raw kinematic data and gets user input (6 points) 
+%and uses those indices to define three cycles for each degree of 
+%freedom. These cycles are then normalized to 100 data points to 
+%represent one cycle. The new truncated cycle is then plotted. The mean 
+%and standard deviation is then found and plotted.
+ 
+clear all
+close all
+clc
+ 
+[FileName1,PathName] = uigetfile({'*.xls'},'Choose Pref 1 Hammer 1');
+ 
+%This function will load in the chosen .xls file and will place all of the
+%exported data into the structure "channel"
+FilePath = [PathName,FileName1];
+fid = fopen(FilePath);
+ 
+%Close file
+fclose(fid);
+ 
+%Reads in the data and assigns the variable 'data' to the numerical %values in .data directory
+data_table=importdata(FilePath);
+data=data_table.data;
+ 
+%Uses 'data' to assign the corresponding DOF's to each joint
+%'hum_elev' is used to define the onset & offset of the cycles for slicing. 
+%It is plotted against frames which correspond to the 'data(:,1)' variable. 
+%A default of 6 data points are selected which is used to define 3 cycles.
+%Each variable is split into categories for a simpler and direct use. 
+%We are only using 2 DOF's at the elbow b/c 'carrying angle' isn't reported
+elbow = [data(:,2),data(:,4)];
+wrist = data(:,5:7);
+shoulder = data(:,8:10);
+hum_elev = data(:,12);
+hand_position_thorax = data(:,14:16);
+hand_velocity = data(:,17:19);
+ 
+%Request's a user input to define the motion intended for analysis
+%String inputs 's' or 'h' will then be used to define slicing or hammering
+%data from the MS Excel file
+%For Slicing HT Elevation is used to define the cycles
+%For Hammering Elbow Flexion/Extension is used to define the cycles
+Input_Motion = input...
+    ('What motion would you like to evaluate? Slice/Hammer [s/h]: ','s');
+ 
+if Input_Motion == 's'
+    figure(1)
+    plot(data(:,1),hum_elev), xlabel('Frames'), ...
+        ylabel('Humerothoracic Elevation (Deg)')
+    [x,y]=ginput(6);
+end
+ 
+if Input_Motion == 'h'
+    figure(1)
+    plot(data(:,1),elbow(:,1)), xlabel('Frames'), ...
+        ylabel('Elbow Flexion / Extension (Deg)')
+    [x,y]=ginput(6);
+end
+ 
+%The 'x' and 'y' values from 'ginput' are used to define the row and column
+%indices. When defining the cycles we are only concerned with the 'x'
+%values because they define the frame values. The 'x' values are then used 
+%to define each frame index value. For example 'p1' defines Cycle 1 frame
+%values from 'x(1)' & 'x(2)' which define the start and end. (Cycle 2 =>
+%'p2' => 'x(3)' & 'x(4)') (Cycle 3 => 'p3' => 'x(5)' & 'x(6)')
+[p1,q1]=find(data(:,1) > x(1)& data(:,1) < x(2));
+[p2,q2]=find(data(:,1) > x(3)& data(:,1) < x(4));
+[p3,q3]=find(data(:,1) > x(5)& data(:,1) < x(6));
+ 
+%Exports each DOF for Cycle 1 at the elbow, wrist and shoulder using 'p1'
+%index as its frame reference. 1 = cycle 1, e1 = 1st DOF for the elbow, 
+%w1 = 1st DOF for the wrist, s1 = 1st DOF for the shoudler
+%Inputs variables: elbow, wrist, and shoulder dataset's with respective 
+%'p' value to define the correct cycle
+[c1_e1,c1_e2,c1_w1,c1_w2,c1_w3,c1_s1,c1_s2,c1_s3] = ...
+    cycle_definition(elbow,wrist,shoulder,p1);
+%._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._
+ 
+%Exports each DOF for Cycle 1 at the elbow, wrist and shoulder using 'p2'
+%index as its frame reference. 1 = cycle 1, e1 = 1st DOF for the elbow, 
+%w1 = 1st DOF for the wrist, s1 = 1st DOF for the shoudler
+%Inputs variables: elbow, wrist, and shoulder dataset's with respective 
+%'p' value to define the correct cycle
+[c2_e1,c2_e2,c2_w1,c2_w2,c2_w3,c2_s1,c2_s2,c2_s3] = ...
+    cycle_definition(elbow,wrist,shoulder,p2);
+%._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._   
+ 
+%Exports each DOF for Cycle 1 at the elbow, wrist and shoulder using 'p3'
+%index as its frame reference. 1 = cycle 1, e1 = 1st DOF for the elbow, 
+%w1 = 1st DOF for the wrist, s1 = 1st DOF for the shoudler
+%Inputs variables: elbow, wrist, and shoulder dataset's with respective 
+%'p' value to define the correct cycle
+[c3_e1,c3_e2,c3_w1,c3_w2,c3_w3,c3_s1,c3_s2,c3_s3] = ...
+    cycle_definition(elbow,wrist,shoulder,p3);
+%._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._
+ 
+%Normalizes the frame values so that the values range from a minimum of %0 and a maximum of 100. The number of frames for each cycle remain the %same in order to maintain the same increment trend but just range from %0-100
+[normal_1] = norm_frame_cycle_1(p1);
+[normal_2] = norm_frame_cycle_2(p2);
+[normal_3] = norm_frame_cycle_3(p3);
+%._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._
+ 
+%Creates the x-axis from 0-99 which is going to be used as the x-axis for 
+%each DOF plot. Define's the '% Cycle' against the normalized DOF dataset 
+stance=(0:1:99);
+ 
+%Exports the converted original raw dataset to the new interpolated dataset
+%for Cycle 1 using the exported DOF's for the elbow, wrist, and shoulder as
+%its input variables. 
+[new_c1_e1,new_c1_e2,new_c1_w1,new_c1_w2,new_c1_w3,new_c1_s1,new_c1_s2...
+    ,new_c1_s3] = cycle_interp(normal_1, c1_e1, c1_e2, c1_w1, c1_w2,...
+    c1_w3, c1_s1, c1_s2, c1_s3, stance);
+%._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._
+ 
+%Exports the converted original raw dataset to the new interpolated dataset
+%for Cycle 2 using the exported DOF's for the elbow, wrist, and shoulder as
+%its input variables. 
+[new_c2_e1,new_c2_e2,new_c2_w1,new_c2_w2,new_c2_w3,new_c2_s1,new_c2_s2...
+    ,new_c2_s3] = cycle_interp(normal_2, c2_e1, c2_e2, c2_w1, c2_w2...
+    , c2_w3, c2_s1, c2_s2, c2_s3, stance);
+%._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._
+ 
+%Exports the converted original raw dataset to the new interpolated dataset
+%for Cycle 3 using the exported DOF's for the elbow, wrist, and shoulder as
+%its input variables. 
+[new_c3_e1,new_c3_e2,new_c3_w1,new_c3_w2,new_c3_w3,new_c3_s1,new_c3_s2...
+    ,new_c3_s3] = cycle_interp(normal_3, c3_e1, c3_e2, c3_w1, c3_w2...
+    , c3_w3, c3_s1, c3_s2, c3_s3, stance);
+%._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._
+ 
+%Plots Cycle 1, Cycle 2, and Cycle 2 for each DOF. All comments prior to 
+%plot's define the abbreviation used with respect to the elbow, wrist and
+%shoulder. (e = Elbow, w = Wrist, and s = Shoulder; 1,2,3 => DOF
+ 
+%Run this for both slicing and hammering
+ 
+%e1 = Elbow Flexion/Hyperextension
+figure(2)
+plot(stance,new_c1_e1,'b-')
+hold on
+plot(stance,new_c2_e1,'r-')
+hold on
+plot(stance,new_c3_e1,'c-')
+title('Elbow Flexion Hyperextension')
+legend('Cycle 1','Cycle 2','Cycle 3')
+% ylim([-40 160]) %Slice
+ylim([0 180]) %Hammer
+xlabel('Percent Cycle')
+ylabel('Flexion (Deg) \rightarrow')
+ 
+%e2 = Elbow Pronation/Supination
+figure(3)
+plot(stance,new_c1_e2,'b-')
+hold on
+plot(stance,new_c2_e2,'r-')
+hold on
+plot(stance,new_c3_e2,'c-')
+title('Elbow Pronation Supination')
+legend('Cycle 1','Cycle 2','Cycle 3')
+ylim([-80 105]) %Slice
+% ylim([-80 105]) %Hammer
+xlabel('Percent Cycle')
+ylabel('Pronation (Deg) \rightarrow')
+ 
+%w1 = Wrist Flexion/Extension
+figure(4)
+plot(stance,new_c1_w1,'b-')
+hold on
+plot(stance,new_c2_w1,'r-')
+hold on
+plot(stance,new_c3_w1,'c-')
+title('Wrist Flexion Extension')
+legend('Cycle 1','Cycle 2','Cycle 3')
+ylim([-60 120]) %Slice
+% ylim([-60 120]) %Hammer
+xlabel('Percent Cycle')
+ylabel('Flexion (Deg) \rightarrow')
+ 
+%w2 = Wrist Adduction/Abduction
+figure(5)
+plot(stance,new_c1_w2,'b-')
+hold on
+plot(stance,new_c2_w2,'r-')
+hold on
+plot(stance,new_c3_w2,'c-')
+title('Wrist Adduction Abduction')
+legend('Cycle 1','Cycle 2','Cycle 3')
+ylim([-60 60]) %Slice
+% ylim([-60 60]) %Hammer
+xlabel('Percent Cycle')
+ylabel('Abduction (Deg) \rightarrow')
+ 
+%w3 = Wrist Pronation/Supination
+figure(6)
+plot(stance,new_c1_w3,'b-')
+hold on
+plot(stance,new_c2_w3,'r-')
+hold on
+plot(stance,new_c3_w3,'c-')
+title('Wrist Pronation Supination')
+legend('Cycle 1','Cycle 2','Cycle 3')
+% ylim([-80 120]) %Slice
+ylim([-80 140]) %Hammer
+xlabel('Percent Cycle')
+ylabel('Pronation (Deg) \rightarrow')
+ 
+%s1 = GH Plane of Elevation
+figure(7)
+plot(stance,new_c1_s1,'b-')
+hold on
+plot(stance,new_c2_s1,'r-')
+hold on
+plot(stance,new_c3_s1,'c-')
+title('Glenohumeral Plane of Elevation')
+legend('Cycle 1','Cycle 2','Cycle 3')
+ylim([-200 200]) %Slice
+% ylim([-200 200]) %Hammer
+xlabel('Percent Cycle')
+ylabel('Flexion (Deg) \rightarrow')
+ 
+%s2 = GH Elevation
+figure(8)
+plot(stance,new_c1_s2,'b-')
+hold on
+plot(stance,new_c2_s2,'r-')
+hold on
+plot(stance,new_c3_s2,'c-')
+title('Glenohumeral Elevation')
+legend('Cycle 1','Cycle 2','Cycle 3')
+ylim([-80 50]) %Slice
+% ylim([-80 50]) %Hammer
+xlabel('Percent Cycle')
+ylabel('Adduction (Deg) \rightarrow')
+ 
+%s3 = GH Axial Rotation
+figure(9)
+plot(stance,new_c1_s3,'b-')
+hold on
+plot(stance,new_c2_s3,'r-')
+hold on
+plot(stance,new_c3_s3,'c-')
+title('Glenohumeral Axial Rotation')
+legend('Cycle 1','Cycle 2','Cycle 3')
+ylim([-200 200]) %Slice
+% ylim([-200 200]) %Hammer
+xlabel('Percent Cycle')
+ylabel('Internal Rotation (Deg) \rightarrow')
+%._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._
+ 
+%Combines the 3 cycles for each DOF and calculates its respective
+%mean and standard deviation. Taking the standard deviation and multiplying
+%it (1.96) will give the 95% CI. 
+ 
+%Calculates the Mean & Standard Deviation for the 1st DOF of the elbow (e1)
+[e1_mean,e1_SD] = mean_SD(new_c1_e1, new_c2_e1, new_c3_e1);
+ 
+%Calculates the Mean & Standard Deviation for the 2nd DOF of the elbow (e2)
+[e2_mean,e2_SD] = mean_SD(new_c1_e2, new_c2_e2, new_c3_e2);
+ 
+%Calculates the Mean & Standard Deviation for the 1st DOF of the wrist (w1)
+[w1_mean,w1_SD] = mean_SD(new_c1_w1, new_c2_w1, new_c3_w1);
+ 
+%Calculates the Mean & Standard Deviation for the 2nd DOF of the wrist (w2)
+[w2_mean,w2_SD] = mean_SD(new_c1_w2, new_c2_w2, new_c3_w2);
+ 
+%Calculates the Mean & Standard Deviation for the 3rd DOF of the wrist (w3)
+[w3_mean,w3_SD] = mean_SD(new_c1_w3, new_c2_w3, new_c3_w3);
+ 
+%Calc's the Mean & Standard Deviation for the 1st DOF of the shoulder (s1)
+[s1_mean,s1_SD] = mean_SD(new_c1_s1, new_c2_s1, new_c3_s1);
+ 
+%Calc's the Mean & Standard Deviation for the 2nd DOF of the shoulder (s2)
+[s2_mean,s2_SD] = mean_SD(new_c1_s2, new_c2_s2, new_c3_s2);
+ 
+%Calc's the Mean & Standard Deviation for the 3rd DOF of the shoulder (s3)
+[s3_mean,s3_SD] = mean_SD(new_c1_s3, new_c2_s3, new_c3_s3);
+%._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._
+ 
+ 
+%Plots the Means and Standard Deviation for each DOF
+ 
+%mean_e1 = Mean Elbow Flexion/Hyperextension; e1_SD = Elbow Standard Dev.
+figure(10)
+plot(stance,e1_mean,'b-')
+hold on
+plot(stance,e1_mean-e1_SD,'k-.')
+hold on
+plot(stance,e1_mean+e1_SD,'k-.')
+title('Mean Elbow Flexion Hyperextension')
+legend('Mean')
+xlim([0 100])
+ylim([-40 180])
+xlabel('Percent Cycle')
+ylabel('Flexion (Deg) \rightarrow')
+ 
+%mean_e2 = Mean Elbow Pronation/Supination; e2_SD = Elbow Standard Dev.
+figure(11)
+plot(stance,e2_mean,'b-')
+hold on
+plot(stance,e2_mean-e2_SD,'k-.')
+hold on
+plot(stance,e2_mean+e2_SD,'k-.')
+title('Mean Elbow Pronation Supination')
+legend('Mean')
+xlim([0 100])
+ylim([-100 120])
+xlabel('Percent Cycle')
+ylabel('Pronation (Deg) \rightarrow')
+ 
+%mean_w1 = Mean Wrist Flexion/Extension; w1_SD = Wrist Standard Dev.
+figure(12)
+plot(stance,w1_mean,'b-')
+hold on
+plot(stance,w1_mean-w1_SD,'k-.')
+hold on
+plot(stance,w1_mean+w1_SD,'k-.')
+title('Mean Wrist Flexion Extension')
+legend('Mean')
+xlim([0 100])
+ylim([-100 200])
+xlabel('Percent Cycle')
+ylabel('Flexion (Deg) \rightarrow')
+ 
+%mean_w2 = Mean Wrist Adduction/Abduction; w2_SD = Wrist Standard Dev.
+figure(13)
+plot(stance,w2_mean,'b-')
+hold on
+plot(stance,w2_mean-w2_SD,'k-.')
+hold on
+plot(stance,w2_mean+w2_SD,'k-.')
+title('Mean Wrist Adduction Abduction')
+legend('Mean')
+xlim([0 100])
+ylim([-60 100])
+xlabel('Percent Cycle')
+ylabel('Abduction (Deg) \rightarrow')
+ 
+%mean_w3 = Mean Wrist Pronation Supination; w3_SD = Wrist Standard Dev.
+figure(14)
+plot(stance,w3_mean,'b-')
+hold on
+plot(stance,w3_mean-w3_SD,'k-.')
+hold on
+plot(stance,w3_mean+w3_SD,'k-.')
+title('Mean Wrist Pronation Supination')
+legend('Mean')
+xlim([0 100])
+% ylim([-100 120])
+ylim([-100 150])
+xlabel('Percent Cycle')
+ylabel('Pronation (Deg) \rightarrow')
+ 
+%mean_s1 = Mean GH Plane of Elevation; s1_SD = Wrist Standard Dev.
+figure(15)
+plot(stance,s1_mean,'b-')
+hold on
+plot(stance,s1_mean-s1_SD,'k-.')
+hold on
+plot(stance,s1_mean+s1_SD,'k-.')
+title('Mean GH Plane of Elevation')
+legend('Mean')
+xlim([0 100])
+ylim([-200 150])
+xlabel('Percent Cycle')
+ylabel('Flexion (Deg) \rightarrow')
+ 
+%shoulder2 = Mean GH Elevation; s2_SD = Wrist Standard Dev.
+figure(16)
+plot(stance,s2_mean,'b-')
+hold on
+plot(stance,s2_mean-s2_SD,'k-.')
+hold on
+plot(stance,s2_mean+s2_SD,'k-.')
+title('Mean GH Elevation')
+legend('Mean')
+xlim([0 100])
+ylim([-90 60])
+xlabel('Percent Cycle')
+ylabel('Adduction (Deg) \rightarrow')
+ 
+%mean_s3 = Mean GH Axial Rotation; s3_SD = Wrist Standard Dev.
+figure(17)
+plot(stance,s3_mean,'b-')
+hold on
+plot(stance,s3_mean-s3_SD,'k-.')
+hold on
+plot(stance,s3_mean+s3_SD,'k-.')
+title('Mean GH Axial Rotation')
+legend('Mean')
+xlim([0 100])
+ylim([-200 200])
+xlabel('Percent Cycle')
+ylabel('Internal Rotation (Deg) \rightarrow')
+%._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._
+ 
+%(Speech Kinematics)
+%
+%Comparison with (Clark et al., 1994)
+%Calculations taken of the Hand relative to the Thorax
+%1. Movement Amplitude - the travel distance of the hand in (cm) per cycle
+%2. Trajectory Duration - the time it takes for the hand to complete one
+%cycle
+%3. Velocity - resultant of Vx, Vy, and Vz
+ 
+% Defines Cycle's 1, 2, and 3 for the hand position in the x & y directions
+c1x = hand_position_thorax(p1,1);
+c1y = hand_position_thorax(p1,2);
+c1z = hand_position_thorax(p1,3);
+ 
+c2x = hand_position_thorax(p2,1);
+c2y = hand_position_thorax(p2,2);
+c2z = hand_position_thorax(p2,3);
+ 
+c3x = hand_position_thorax(p3,1);
+c3y = hand_position_thorax(p3,2);
+c3z = hand_position_thorax(p3,3);
+ 
+%~~~~~~~~~~~~~~~~~~~~~~~~~~MovementAmplitude~~~~~~~~~~~~~~~~~~~~~~~~~~~
+[MA1,MA2,MA3,MA_mean] = ...
+    Movement_Amplitude...
+    (p1, p2, p3, c1x, c1y, c1z, c2x, c2y, c2z, c3x, c3y, c3z);
+%._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._
+ 
+%~~~~~~~~~~~~~~~~~~~~~~~~~TrajectoryDuration~~~~~~~~~~~~~~~~~~~~~~~~~~~
+[TD1,TD2,TD3,TD_mean] = Trajectory_Duration(p1, p2, p3);
+%._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._
+
+%~~~~~~~~~~~~~~~~~~~~~~~~~TangentialVelocity~~~~~~~~~~~~~~~~~~~~~~~~~~~
+[tan_vel1,tan_vel2,tan_vel3,mean_vel1,mean_vel2,mean_vel3,V_avg] = ...
+    Tangential_Velocity_Plots(p1, p2, p3, hand_velocity, data);
+%._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._
+ 
+%~~~~~~~~~~~~~~~~~~~~~Range of Motion Export)~~~~~~~~~~~~~~~~~~~~~~~~~~
+ROM(e1_mean,e2_mean,w1_mean,w2_mean,w3_mean,...
+    s1_mean,s2_mean,s3_mean)
+%._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._
+ 
+%~~~~~~~~~~~~~~~~~~~~~~~SubjectKinematics(Export)~~~~~~~~~~~~~~~~~~~~~~
+Kinematics_Export(e1_mean,e2_mean,w1_mean,w2_mean,w3_mean,...
+    s1_mean,s2_mean,s3_mean)
+%._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._
+ 
+%~~~~~~~~~~~~~~~~~~~~~~~Speech Kinematics(Export)~~~~~~~~~~~~~~~~~~~~~~
+Speech_Kinematics_Export...
+    (MA1,MA2,MA3,MA_mean,TD1,TD2,TD3,TD_mean,mean_vel1,mean_vel2...
+    ,mean_vel3,V_avg)
+%._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._
+ 
+%~~~~~~~~~~~~~~~~~~~~~~~~Cycle Positions (Export)~~~~~~~~~~~~~~~~~~~~~~
+cycle_position(e1_mean,e2_mean,w1_mean,w2_mean,w3_mean,...
+    s1_mean,s2_mean,s3_mean)
+%._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._
+ 
+%~~~~~~~~~~~~~~~~~~~~~~~Kinematic Plots (Export)~~~~~~~~~~~~~~~~~~~~~~~
+%Exports the Kinematic graphs to MS Word clipboard.
+%To use - 1. Open MS Word, 2. Open 'Clipboard' pane, 3. Clear any documents
+%or previously copied items (only 24 items can be copied at a time), 4. Run
+%the MATLAB code, 5. Click 'paste all' at the top of the pane, 6. If more
+%than 24 plots are going to be copied select copy figure in MATLAB plot and
+%they will appear in the clipboard
+hgexport(1,'-clipboard') 
+hgexport(2,'-clipboard')
+hgexport(3,'-clipboard') 
+hgexport(4,'-clipboard')
+hgexport(5,'-clipboard') 
+hgexport(6,'-clipboard')
+hgexport(7,'-clipboard') 
+hgexport(8,'-clipboard')
+hgexport(9,'-clipboard') 
+hgexport(10,'-clipboard')
+hgexport(11,'-clipboard') 
+hgexport(12,'-clipboard')
+hgexport(13,'-clipboard') 
+hgexport(14,'-clipboard')
+hgexport(15,'-clipboard') 
+hgexport(16,'-clipboard')
+hgexport(17,'-clipboard')
+hgexport(18,'-clipboard')
+hgexport(19,'-clipboard')
+hgexport(20,'-clipboard')
+hgexport(21,'-clipboard')
+hgexport(22,'-clipboard')
+hgexport(23,'-clipboard')
+hgexport(24,'-clipboard')
+hgexport(25,'-clipboard')
+%._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._
+
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+function [c_e1,c_e2,c_w1,c_w2,c_w3,c_s1,c_s2,c_s3] = cycle_definition(elbow,wrist,shoulder,p)
+ 
+c_e1 = elbow(p,1);
+c_e2 = elbow(p,2);
+    
+c_w1 = wrist(p,1);
+c_w2 = wrist(p,2);
+c_w3 = wrist(p,3);
+    
+c_s1 = shoulder(p,1);
+c_s2 = shoulder(p,2);
+c_s3 = shoulder(p,3);
+%._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._
+
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+function [normal_1]=norm_frame_cycle_1(p1)
+ 
+    %assigns the frame index for cycle 1 
+    cycle1_frames = p1;
+    %subtracts minimum value in 'p1' from each frame value to make data end
+    %at 0.
+    new_frame = cycle1_frames-min(cycle1_frames);
+    %divides through by the max value to force 0 to 1 data set
+    zero_to_one = new_frame/max(new_frame);
+    %multiplies to have a % cycle from 0 to 100
+    normal_1 = zero_to_one * 100;
+%._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._
+
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+function [normal_2]=norm_frame_cycle_2(p2)
+ 
+    %assigns the frame index for cycle 2 
+    cycle2_frames = p2;
+    %subtracts minimum value in 'p2' from each frame value to make data end
+    %at 0.
+    new_frame = cycle2_frames-min(cycle2_frames);
+    %divides through by the max value to force 0 to 1 data set
+    zero_to_one = new_frame/max(new_frame);
+    %multiplies to have a % cycle from 0 to 100
+    normal_2 = zero_to_one * 100;
+%._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._
+
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+function [normal_3]=norm_frame_cycle_3(p3)
+ 
+    %assigns the frame index for cycle 3 
+    cycle3_frames = p3;
+    %subtracts minimum value in 'p3' from each frame value to make data end
+    %at 0.
+    new_frame = cycle3_frames-min(cycle3_frames);
+    %divides through by the max value to force 0 to 1 data set
+    zero_to_one = new_frame/max(new_frame);
+    %multiplies to have a % Cycle from 0 to 100
+    normal_3 = zero_to_one * 100;
+%._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._
+
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+function [new_c_e1,new_c_e2,new_c_w1,new_c_w2,new_c_w3,new_c_s1,new_c_s2,new_c_s3 ] ...
+    = cycle_interp(normal, c_e1, c_e2, c_w1, c_w2, c_w3,c_s1,c_s2,c_s3,stance)
+ 
+new_c_e1 = interp1(normal,c_e1,stance);
+new_c_e2 = interp1(normal,c_e2,stance);
+    
+new_c_w1 = interp1(normal,c_w1,stance);
+new_c_w2 = interp1(normal,c_w2,stance);
+new_c_w3 = interp1(normal,c_w3,stance);
+    
+new_c_s1 = interp1(normal,c_s1,stance);
+new_c_s2 = interp1(normal,c_s2,stance);
+new_c_s3 = interp1(normal,c_s3,stance);
+%._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._
+
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+function [combined_mean,SD] = mean_SD(c1, c2, c3)
+ 
+%Combines the cycles
+combined = [c1;c2;c3];
+%Mean of the combined cycles
+combined_mean = mean(combined);
+%Standard deviation of the combined cycles
+SD1 = std(combined);
+%95% CI for the elbow
+SD = SD1*1.96;
+%._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._
+
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+function [MA1,MA2,MA3,MA_mean] = ...
+    Movement_Amplitude...
+    (l1, l2, l3, c1_x, c1_y, c1_z, c2_x, c2_y, c2_z, c3_x, c3_y, c3_z)
+%Length of Cycle's 1, 2, and 3 used for loops in 'Trajectory_Distance'
+m1=length(l1);
+m2=length(l2);
+m3=length(l3);
+ 
+%Calculates the trajectory distance for Cycle's 1, 2, and 3
+[d1] = Trajectory_Distance(m1, c1_x, c1_y, c1_z);
+[d2] = Trajectory_Distance(m2, c2_x, c2_y, c2_z);
+[d3] = Trajectory_Distance(m3, c3_x, c3_y, c3_z);
+ 
+%Movement Amplitude in (cm)
+MA1 = (sum(d1)*100);
+MA2 = (sum(d2)*100);
+MA3 = (sum(d3)*100);
+ 
+B = [MA1 MA2 MA3];
+MA_mean = mean(B);
+ 
+% Plot the movement amplitudes on a bar graph for one subject
+figure(22)
+bar(B,0.5)
+title('Movement Amplitude')
+xlabel('Cycles')
+ylabel('Hand Travel Distance (cm)')
+%._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._
+
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+function [TD1,TD2,TD3,TD_mean] = Trajectory_Duration(p1, p2, p3)
+ 
+%Trajectory Duration of each cycle
+TD1 = (size(p1,1))/240;
+TD2 = (size(p2,1))/240;
+TD3 = (size(p3,1))/240;
+ 
+C = [TD1 TD2 TD3];
+TD_mean = mean(C);
+ 
+figure(23)
+bar(C,0.5)
+title('Trajectory Duration')
+xlabel('Cycles')
+ylabel('Time to complete one cycle (sec)')
+%._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._
+
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+function [tan_vel1,tan_vel2,tan_vel3,mean_vel1,mean_vel2,mean_vel3,V_avg]...
+    = Tangential_Velocity_Plots(p1, p2, p3, hand_velocity, data)
+ 
+%Definition of the filtered velocity cycles for the x direction
+vel_x_c1 = hand_velocity(p1,1);
+vel_x_c2 = hand_velocity(p2,1);
+vel_x_c3 = hand_velocity(p3,1);
+ 
+%Definition of the filtered velocity cycles for the y direction
+vel_y_c1 = hand_velocity(p1,2);
+vel_y_c2 = hand_velocity(p2,2);
+vel_y_c3 = hand_velocity(p3,2);
+ 
+%Definition of the filtered velocity cycles for the y direction
+vel_z_c1 = hand_velocity(p1,3);
+vel_z_c2 = hand_velocity(p2,3);
+vel_z_c3 = hand_velocity(p3,3);
+ 
+[mean_vel1,tan_vel1] = Tangential_Velocity(p1, vel_x_c1, vel_y_c1, vel_z_c1);
+[mean_vel2,tan_vel2] = Tangential_Velocity(p2, vel_x_c2, vel_y_c2, vel_z_c2);
+[mean_vel3,tan_vel3] = Tangential_Velocity(p3, vel_x_c3, vel_y_c3, vel_z_c3);
+ 
+%Time (Cycle Definition)
+time_c1 = data(p1,20);
+time_c2 = data(p2,20);
+time_c3 = data(p3,20);
+ 
+%Plots the three cycles of the velocity wrt time
+figure(24)
+plot(time_c1,tan_vel1,'b-')
+title('Velocity')
+xlabel('Cycle Time (sec)')
+ylabel('Velocity (m/s)')
+hold on
+plot(time_c2,tan_vel2,'g-')
+hold on
+plot(time_c3,tan_vel3,'r-')
+ 
+%Plots the average velocity in a bar chart
+F = [mean_vel1 mean_vel2 mean_vel3];
+figure(25)
+bar(F);
+title('Average Velocity')
+xlabel('Cycles')
+ylabel('Velocity (m/s)')
+ 
+%Takes the average of each cycle and takes the average
+V_avg = mean(F);
+%._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._
+
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+function ROM(e1_m,e2_m,w1_m,w2_m,w3_m,s1_m,s2_m,s3_m)
+ 
+%Calculates the minimum value of the mean with respect to each DOF. For
+%each minimum it also calculates the minimum's occurence postion, which in
+%our case is the corresponding % Cycle where the minimum occurs
+[e1_min,e1_min_pos] = min(e1_m);
+[e2_min,e2_min_pos] = min(e2_m);
+ 
+[w1_min,w1_min_pos] = min(w1_m);
+[w2_min,w2_min_pos] = min(w2_m);
+[w3_min,w3_min_pos] = min(w3_m);
+ 
+[s1_min,s1_min_pos] = min(s1_m);
+[s2_min,s2_min_pos] = min(s2_m);
+[s3_min,s3_min_pos] = min(s3_m);
+%._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._
+ 
+%Calculates the maximum value of the mean with respect to each DOF. For
+%each maximum it also calculates the maximum's occurence postion, which in
+%our case is the corresponding % Cycle where the maximum occurs
+[e1_max, e1_max_pos] = max(e1_m);
+[e2_max, e2_max_pos] = max(e2_m);
+ 
+[w1_max, w1_max_pos] = max(w1_m);
+[w2_max, w2_max_pos] = max(w2_m);
+[w3_max, w3_max_pos] = max(w3_m);
+ 
+[s1_max, s1_max_pos] = max(s1_m);
+[s2_max, s2_max_pos] = max(s2_m);
+[s3_max, s3_max_pos] = max(s3_m);
+%._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._
+ 
+%Calculates the ROM for each DOF by taking the difference of the maximum
+%value and the minimum value
+Rom1 = e1_max - e1_min;
+Rom2 = e2_max - e2_min;
+Rom3 = w1_max - w1_min;
+Rom4 = w2_max - w2_min;
+Rom5 = w3_max - w3_min;
+Rom6 = s1_max - s1_min;
+Rom7 = s2_max - s2_min;
+Rom8 = s3_max - s3_min;
+%._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._
+ 
+%The file that the data above exports to is currently named 
+%'ALL_SL1.xls' for slicing and
+%'ALL_HA1.xls' for hammering.
+ 
+%Cell locations remain the same for both slicing and hammering but the 
+%sheet number changes for each subject.
+ 
+%Sheet Names:
+%N1
+%S1 Base
+%S1 Gesture
+%S1 ENT
+%N2
+%S2
+%N3
+%S3
+%N4
+%S4
+%N5
+%S5
+ 
+%Exports minimum values to MS Excel file.
+xlswrite('Results.xls', e1_min, 'Base - Slice', 'P3');
+xlswrite('Results.xls', e2_min, 'Base - Slice', 'P4');
+xlswrite('Results.xls', w1_min, 'Base - Slice', 'P5');
+xlswrite('Results.xls', w2_min, 'Base - Slice', 'P6');
+xlswrite('Results.xls', w3_min, 'Base - Slice', 'P7');
+xlswrite('Results.xls', s1_min, 'Base - Slice', 'P8');
+xlswrite('Results.xls', s2_min, 'Base - Slice', 'P9');
+xlswrite('Results.xls', s3_min, 'Base - Slice', 'P10');
+%._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._
+ 
+%Exports '% Cycle' corresponding to the minimum value. 
+xlswrite('Results.xls', e1_min_pos, 'Base - Slice', 'R3');
+xlswrite('Results.xls', e2_min_pos, 'Base - Slice', 'R4');
+xlswrite('Results.xls', w1_min_pos, 'Base - Slice', 'R5');
+xlswrite('Results.xls', w2_min_pos, 'Base - Slice', 'R6');
+xlswrite('Results.xls', w3_min_pos, 'Base - Slice', 'R7');
+xlswrite('Results.xls', s1_min_pos, 'Base - Slice', 'R8');
+xlswrite('Results.xls', s2_min_pos, 'Base - Slice', 'R9');
+xlswrite('Results.xls', s3_min_pos, 'Base - Slice', 'R10');
+%._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._
+ 
+%Exports maximum values to MS Excel file.
+xlswrite('Results.xls', e1_max, 'Base - Slice', 'O3');
+xlswrite('Results.xls', e2_max, 'Base - Slice', 'O4');
+xlswrite('Results.xls', w1_max, 'Base - Slice', 'O5');
+xlswrite('Results.xls', w2_max, 'Base - Slice', 'O6');
+xlswrite('Results.xls', w3_max, 'Base - Slice', 'O7');
+xlswrite('Results.xls', s1_max, 'Base - Slice', 'O8');
+xlswrite('Results.xls', s2_max, 'Base - Slice', 'O9');
+xlswrite('Results.xls', s3_max, 'Base - Slice', 'O10');
+%._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._
+ 
+%Exports '% Cycle' corresponding to the maximum value. 
+xlswrite('Results.xls', e1_max_pos, 'Base - Slice', 'S3');
+xlswrite('Results.xls', e2_max_pos, 'Base - Slice', 'S4');
+xlswrite('Results.xls', w1_max_pos, 'Base - Slice', 'S5');
+xlswrite('Results.xls', w2_max_pos, 'Base - Slice', 'S6');
+xlswrite('Results.xls', w3_max_pos, 'Base - Slice', 'S7');
+xlswrite('Results.xls', s1_max_pos, 'Base - Slice', 'S8');
+xlswrite('Results.xls', s2_max_pos, 'Base - Slice', 'S9');
+xlswrite('Results.xls', s3_max_pos, 'Base - Slice', 'S10');
+%._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._
+ 
+%Exports the Range of Motion
+xlswrite('Results.xls', Rom1, 'Base - Slice', 'Q3');
+xlswrite('Results.xls', Rom2, 'Base - Slice', 'Q4');
+xlswrite('Results.xls', Rom3, 'Base - Slice', 'Q5');
+xlswrite('Results.xls', Rom4, 'Base - Slice', 'Q6');
+xlswrite('Results.xls', Rom5, 'Base - Slice', 'Q7');
+xlswrite('Results.xls', Rom6, 'Base - Slice', 'Q8');
+xlswrite('Results.xls', Rom7, 'Base - Slice', 'Q9');
+xlswrite('Results.xls', Rom8, 'Base - Slice', 'Q10');
+%._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._
+
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+function Kinematics_Export(m1,m2,m3,m4,m5,m6,m7,m8)
+%Exports kinematics (raw & mean) for each subject. A MS Excel file should
+%be created to account for placement of each subjects kinematics
+ 
+%Change 'Sheet' name for every subject...cell locations stay the same for
+%hammer and slice
+ 
+%Change 'filename' to either 'SL1' for slicing or 'HA1' for hammering
+ 
+%Sheet Names:
+%N1
+%S1 Base
+%S1 Gesture
+%S1 ENT
+%N2
+%S2
+%N3
+%S3
+%N4
+%S4
+%N5
+%S5
+ 
+%Exports mean kinematic values for current subject.
+xlswrite('ALL_HA1.xls', m1', 'N5', 'A3');
+xlswrite('ALL_HA1.xls', m2', 'N5', 'B3');
+xlswrite('ALL_HA1.xls', m3', 'N5', 'C3');
+xlswrite('ALL_HA1.xls', m4', 'N5', 'D3');
+xlswrite('ALL_HA1.xls', m5', 'N5', 'E3');
+xlswrite('ALL_HA1.xls', m6', 'N5', 'F3');
+xlswrite('ALL_HA1.xls', m7', 'N5', 'G3');
+xlswrite('ALL_HA1.xls', m8', 'N5', 'H3');
+%._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._
+
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+function Speech_Kinematics_Export...
+    (xz1,xz2,xz3,xz4,xz5,xz6,xz7,xz8,xz9,xz10,xz11,xz12)
+ 
+%Exports kinematic values for 'time point 1'.
+%Movement Amplitude: Cycle 1, Cycle 2, Cycle 3, Average
+xlswrite('ALL_SL1.xls', xz1, 'Sheet3', 'B3');
+xlswrite('ALL_SL1.xls', xz2, 'Sheet3', 'B4');
+xlswrite('ALL_SL1.xls', xz3, 'Sheet3', 'B5');
+xlswrite('ALL_SL1.xls', xz4, 'Sheet3', 'B6');
+ 
+%Trajectory Duration: Cycle 1, Cycle 2, Cycle 3, Average
+xlswrite('ALL_SL1.xls', xz5, 'Sheet3', 'C3');
+xlswrite('ALL_SL1.xls', xz6, 'Sheet3', 'C4');
+xlswrite('ALL_SL1.xls', xz7, 'Sheet3', 'C5');
+xlswrite('ALL_SL1.xls', xz8, 'Sheet3', 'C6');
+ 
+%Average Velocity Cycle: 1, Cycle 2, Cycle 3, Average
+xlswrite('ALL_SL1.xls', xz9, 'Sheet3', 'D3');
+xlswrite('ALL_SL1.xls', xz10, 'Sheet3', 'D4');
+xlswrite('ALL_SL1.xls', xz11, 'Sheet3', 'D5');
+xlswrite('ALL_SL1.xls', xz12, 'Sheet3', 'D6');
+%._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._
+
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+function cycle_position(m_e1,m_e2,m_w1,m_w2,m_w3,m_s1,m_s2,m_s3)
+ 
+% 'm' corresponds to the mean
+% 'e1', 'e2' correspond to the DOF's at the elbow
+% 'w1', 'w2', 'w3' correspond to the DOF's at the wrist
+% 's1', 's2', 'w3' correspond to the DOF's at the shoulder
+% 'i' and 'f' correspond to initial and final positions for each cycle
+ 
+%Iinitial and final positions at the elbow, wrist, and shoulder
+%Elbow
+m_e1_i = m_e1(1);
+m_e1_f = m_e1(end);
+m_e2_i = m_e2(1);
+m_e2_f = m_e2(end);
+ 
+%Wrist
+m_w1_i = m_w1(1);
+m_w1_f = m_w1(end);
+m_w2_i = m_w2(1);
+m_w2_f = m_w2(end);
+m_w3_i = m_w3(1);
+m_w3_f = m_w3(end);
+ 
+%Shoulder
+m_s1_i = m_s1(1);
+m_s1_f = m_s1(end);
+m_s2_i = m_s2(1);
+m_s2_f = m_s2(end);
+m_s3_i = m_s3(1);
+m_s3_f = m_s3(end);
+ 
+%DOF Initial
+xlswrite('Results.xls', m_e1_i, 'Base - Slice', 'M3');
+xlswrite('Results.xls', m_e2_i, 'Base - Slice', 'M4');
+xlswrite('Results.xls', m_w1_i, 'Base - Slice', 'M5');
+xlswrite('Results.xls', m_w2_i, 'Base - Slice', 'M6');
+xlswrite('Results.xls', m_w3_i, 'Base - Slice', 'M7');
+xlswrite('Results.xls', m_s1_i, 'Base - Slice', 'M8');
+xlswrite('Results.xls', m_s2_i, 'Base - Slice', 'M9');
+xlswrite('Results.xls', m_s3_i, 'Base - Slice', 'M10');
+ 
+%DOF Final
+xlswrite('Results.xls', m_e1_f, 'Base - Slice', 'N3');
+xlswrite('Results.xls', m_e2_f, 'Base - Slice', 'N4');
+xlswrite('Results.xls', m_w1_f, 'Base - Slice', 'N5');
+xlswrite('Results.xls', m_w2_f, 'Base - Slice', 'N6');
+xlswrite('Results.xls', m_w3_f, 'Base - Slice', 'N7');
+xlswrite('Results.xls', m_s1_f, 'Base - Slice', 'N8');
+xlswrite('Results.xls', m_s2_f, 'Base - Slice', 'N9');
+xlswrite('Results.xls', m_s3_f, 'Base - Slice', 'N10');
+%._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._
