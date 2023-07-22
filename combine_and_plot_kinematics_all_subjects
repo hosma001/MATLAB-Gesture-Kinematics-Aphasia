@@ -1,0 +1,593 @@
+%~~~~~~~~~~~~~~~~~~~~~~~~2nd Phase of MATLAB~~~~~~~~~~~~~~~~~~~~~~~~~~~
+%Once all the subjects are exported from the first MATLAB program into 
+%one MS Excel file, this program plots them all using that file.
+
+clear all
+close all
+clc
+ 
+[FileName1,PathName] = uigetfile({'*.xls'},'Choose Pref 1 Hammer 1');
+ 
+%This function will load in the chosen .xls file and will place all of the
+%exported data into the structure "channel"
+FilePath = [PathName,FileName1];
+fid = fopen(FilePath);
+ 
+%Close file
+fclose(fid);
+ 
+%Reads in the data and assigns the variable 'data' to the numerical values
+%in .data directory
+data_table=importdata(FilePath);
+data=data_table.data.KinematicsCombined;
+ 
+%Imports all healthy subject data
+N1 = data(:,1:8);
+N2 = data(:,9:16);
+N3 = data(:,17:24);
+N4 = data(:,25:32);
+N5 = data(:,33:40);
+ 
+%Imports all stroke subject data & the time points for SP1
+S1 = data(:,41:48);
+S1_Post_Gesture = data(:,49:56);
+S1_Post_ENT = data(:,57:64);
+S2 = data(:,65:72);
+S3 = data(:,73:80);
+S4 = data(:,81:88);
+S5 = data(:,89:96);
+ 
+%Defines the Percent Stance for each DOF
+stance=(0:1:99);
+ 
+%Combines all healthy subjects in a matrix & takes the transpose for each
+%degree of freedom (Use this for Hammer and Slice)
+N_e1 = [N1(:,1) N2(:,1) N3(:,1) N4(:,1) N5(:,1)]';
+N_e2 = [N1(:,2) N2(:,2) N3(:,2) N4(:,2) N5(:,2)]';
+N_w1 = [N1(:,3) N2(:,3) N3(:,3) N4(:,3) N5(:,3)]';
+N_w2 = [N1(:,4) N2(:,4) N3(:,4) N4(:,4) N5(:,4)]';
+N_w3 = [N1(:,5) N2(:,5) N3(:,5) N4(:,5) N5(:,5)]';
+N_s1 = [N1(:,6) N2(:,6) N3(:,6) N4(:,6) N5(:,6)]';
+N_s2 = [N1(:,7) N2(:,7) N3(:,7) N4(:,7) N5(:,7)]';
+N_s3 = [N1(:,8) N2(:,8) N3(:,8) N4(:,8) N5(:,8)]';
+ 
+%Takes the average for all healthy subjects 
+Mean_N_e1 = mean(N_e1);
+Mean_N_e2 = mean(N_e2);
+Mean_N_w1 = mean(N_w1);
+Mean_N_w2 = mean(N_w2);
+Mean_N_w3 = mean(N_w3);
+Mean_N_s1 = mean(N_s1);
+Mean_N_s2 = mean(N_s2);
+Mean_N_s3 = mean(N_s3);
+ 
+%Combines all stroke subjects in a matrix & takes the transpose for each
+%degree of freedom
+ 
+%(Stroke Slice)
+S_e1 = [S1(:,1) S2(:,1) S3(:,1) S4(:,1) S5(:,1)]';
+S_e2 = [S1(:,2) S2(:,2) S3(:,2) S4(:,2) S5(:,2)]';
+S_w1 = [S1(:,3) S2(:,3) S3(:,3) S4(:,3) S5(:,3)]';
+S_w2 = [S1(:,4) S2(:,4) S3(:,4) S4(:,4) S5(:,4)]';
+S_w3 = [S1(:,5) S2(:,5) S3(:,5) S4(:,5) S5(:,5)]';
+S_s1 = [S1(:,6) S2(:,6) S3(:,6) S4(:,6) S5(:,6)]';
+S_s2 = [S1(:,7) S2(:,7) S3(:,7) S4(:,7) S5(:,7)]';
+S_s3 = [S1(:,8) S2(:,8) S3(:,8) S4(:,8) S5(:,8)]';
+ 
+% %Stroke Hammer (Only use for hammer because it neglects the fifth stroke
+% subject who hammered differently.
+% S_e1 = [S1(:,1) S2(:,1) S3(:,1) S4(:,1)]';
+% S_e2 = [S1(:,2) S2(:,2) S3(:,2) S4(:,2)]';
+% S_w1 = [S1(:,3) S2(:,3) S3(:,3) S4(:,3)]';
+% S_w2 = [S1(:,4) S2(:,4) S3(:,4) S4(:,4)]';
+% S_w3 = [S1(:,5) S2(:,5) S3(:,5) S4(:,5)]';
+% S_s1 = [S1(:,6) S2(:,6) S3(:,6) S4(:,6)]';
+% S_s2 = [S1(:,7) S2(:,7) S3(:,7) S4(:,7)]';
+% S_s3 = [S1(:,8) S2(:,8) S3(:,8) S4(:,8)]';
+ 
+%Takes the average for all stroke subjects  for each degree of freedom
+Mean_S_e1 = mean(S_e1);
+Mean_S_e2 = mean(S_e2);
+Mean_S_w1 = mean(S_w1);
+Mean_S_w2 = mean(S_w2);
+Mean_S_w3 = mean(S_w3);
+Mean_S_s1 = mean(S_s1);
+Mean_S_s2 = mean(S_s2);
+Mean_S_s3 = mean(S_s3);
+ 
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~Healthy Subjects~~~~~~~~~~~~~~~~~~~~~~~~~~~
+%Mean and standard deviation. Taking the standard deviation and multiplying
+%it (1.96) will give the 95% CI. This will be used in the plots below.
+ 
+%Calculates the Standard Deviation for the 1st DOF of the elbow (e1)
+[N_e1_SD] = mean_SD_ALL(Mean_N_e1);
+%Calculates the Standard Deviation for the 2nd DOF of the elbow (e2)
+[N_e2_SD] = mean_SD_ALL(Mean_N_e2);
+%Calculates the Standard Deviation for the 1st DOF of the wrist (w1)
+[N_w1_SD] = mean_SD_ALL(Mean_N_w1);
+%Calculates the Standard Deviation for the 2nd DOF of the wrist (w2)
+[N_w2_SD] = mean_SD_ALL(Mean_N_w2);
+%Calculates the Standard Deviation for the 3rd DOF of the wrist (w3)
+[N_w3_SD] = mean_SD_ALL(Mean_N_w3);
+%Calculates the Standard Deviation for the 1st DOF of the shoulder (s1)
+[N_s1_SD] = mean_SD_ALL(Mean_N_s1);
+%Calculates the Standard Deviation for the 2nd DOF of the shoulder (s2)
+[N_s2_SD] = mean_SD_ALL(Mean_N_s2);
+%Calculates the Standard Deviation for the 3rd DOF of the shoulder (s3)
+[N_s3_SD] = mean_SD_ALL(Mean_N_s3);
+%._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._
+ 
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~StrokeSubjects~~~~~~~~~~~~~~~~~~~~~~~~~~~
+%Mean and standard deviation. Taking the standard deviation and multiplying
+%it (1.96) will give the 95% CI. This will be used in the plots below. 
+ 
+%Calculates the Standard Deviation for the 1st DOF of the elbow (e1)
+[S_e1_SD] = mean_SD_ALL(Mean_S_e1);
+%Calculates the Standard Deviation for the 2nd DOF of the elbow (e2)
+[S_e2_SD] = mean_SD_ALL(Mean_S_e2);
+%Calculates the Standard Deviation for the 1st DOF of the wrist (w1)
+[S_w1_SD] = mean_SD_ALL(Mean_S_w1);
+%Calculates the Standard Deviation for the 2nd DOF of the wrist (w2)
+[S_w2_SD] = mean_SD_ALL(Mean_S_w2);
+%Calculates the Standard Deviation for the 3rd DOF of the wrist (w3)
+[S_w3_SD] = mean_SD_ALL(Mean_S_w3);
+%Calc's the Standard Deviation for the 1st DOF of the shoulder (s1)
+[S_s1_SD] = mean_SD_ALL(Mean_S_s1);
+%Calc's the Standard Deviation for the 2nd DOF of the shoulder (s2)
+[S_s2_SD] = mean_SD_ALL(Mean_S_s2);
+%Calc's the Standard Deviation for the 3rd DOF of the shoulder (s3)
+[S_s3_SD] = mean_SD_ALL(Mean_S_s3);
+%._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._
+  
+%~~~~~~~~~~~~~~~~~~Case Study Time Points vs. ALL Healthy~~~~~~~~~~~~~~
+figure(1)
+plot(stance,S1(:,1),'b-')
+hold on
+plot(stance,S1_Post_Gesture(:,1),'r-')
+hold on
+plot(stance,S1_Post_ENT(:,1),'c-')
+hold on
+plot(stance,Mean_N_e1,'g-')
+hold on
+plot(stance,Mean_N_e1 + N_e1_SD,':k')
+hold on
+plot(stance,Mean_N_e1 - N_e1_SD,':k')
+title({'Slicing Time Points';'Mean Elbow Flexion/Extension'})
+legend('Stroke Baseline','Stroke Post Gesture'...
+    ,'Stroke Post ENT','All Healthy')
+xlabel('Percent Cycle')
+ylabel('Flexion (Deg) \rightarrow')
+ 
+figure(2)
+plot(stance,S1(:,2),'b-')
+hold on
+plot(stance,S1_Post_Gesture(:,2),'r-')
+hold on
+plot(stance,S1_Post_ENT(:,2),'c-')
+hold on
+plot(stance,Mean_N_e2,'g-')
+hold on
+plot(stance,Mean_N_e2 + N_e2_SD,':k')
+hold on
+plot(stance,Mean_N_e2 - N_e2_SD,':k')
+title({'Slicing Time Points';'Mean Elbow Pronation/Supination'})
+legend('Stroke Baseline','Stroke Post Gesture'...
+    ,'Stroke Post ENT','All Healthy')
+xlabel('Percent Cycle')
+ylabel('Pronation (Deg) \rightarrow')
+ylim([40 110]) %Slice
+% ylim([50 100]) %Hammer
+ 
+figure(3)
+plot(stance,S1(:,3),'b-')
+hold on
+plot(stance,S1_Post_Gesture(:,3),'r-')
+hold on
+plot(stance,S1_Post_ENT(:,3),'c-')
+hold on
+plot(stance,Mean_N_w1,'g-')
+hold on
+plot(stance,Mean_N_w1 + N_w1_SD,':k')
+hold on
+plot(stance,Mean_N_w1 - N_w1_SD,':k')
+title({'Slicing Time Points';'Mean Wrist Flexion/Extension'})
+legend('Stroke Baseline','Stroke Post Gesture'...
+    ,'Stroke Post ENT','All Healthy')
+xlabel('Percent Cycle')
+ylabel('Flexion (Deg) \rightarrow')
+% ylim([-40 40]) %Hammer
+ 
+figure(4)
+plot(stance,S1(:,4),'b-')
+hold on
+plot(stance,S1_Post_Gesture(:,4),'r-')
+hold on
+plot(stance,S1_Post_ENT(:,4),'c-')
+hold on
+plot(stance,Mean_N_w2,'g-')
+hold on
+plot(stance,Mean_N_w2 + N_w2_SD,':k')
+hold on
+plot(stance,Mean_N_w2 - N_w2_SD,':k')
+title({'Slicing Time Points';'Mean Wrist Adduction/Abduction'})
+legend('Stroke Baseline','Stroke Post Gesture'...
+    ,'Stroke Post ENT','All Healthy')
+xlabel('Percent Cycle')
+ylabel('Abduction (Deg) \rightarrow')
+% ylim([-30 70]) %Hammer
+ 
+figure(5)
+plot(stance,S1(:,5),'b-')
+hold on
+plot(stance,S1_Post_Gesture(:,5),'r-')
+hold on
+plot(stance,S1_Post_ENT(:,5),'c-')
+hold on
+plot(stance,Mean_N_w3,'g-')
+hold on
+plot(stance,Mean_N_w3 + N_w3_SD,':k')
+hold on
+plot(stance,Mean_N_w3 - N_w3_SD,':k')
+title({'Slicing Time Points';'Mean Wrist Pronation/Supination'})
+legend('Stroke Baseline','Stroke Post Gesture'...
+    ,'Stroke Post ENT','All Healthy')
+xlabel('Percent Cycle')
+ylabel('Pronation (Deg) \rightarrow')
+ 
+figure(6)
+plot(stance,S1(:,6),'b-')
+hold on
+plot(stance,S1_Post_Gesture(:,6),'r-')
+hold on
+plot(stance,S1_Post_ENT(:,6),'c-')
+hold on
+plot(stance,Mean_N_s1,'g-')
+hold on
+plot(stance,Mean_N_s1 + N_s1_SD,':k')
+hold on
+plot(stance,Mean_N_s1 - N_s1_SD,':k')
+title({'Slicing Time Points';'Mean Glenohumeral Plane of Elevation'})
+legend('Stroke Baseline','Stroke Post Gesture'...
+    ,'Stroke Post ENT','All Healthy')
+xlabel('Percent Cycle')
+ylabel('Flexion (Deg) \rightarrow')
+ 
+figure(7)
+plot(stance,S1(:,7),'b-')
+hold on
+plot(stance,S1_Post_Gesture(:,7),'r-')
+hold on
+plot(stance,S1_Post_ENT(:,7),'c-')
+hold on
+plot(stance,Mean_N_s2,'g-')
+hold on
+plot(stance,Mean_N_s2 + N_s2_SD,':k')
+hold on
+plot(stance,Mean_N_s2 - N_s2_SD,':k')
+title({'Slicing Time Points';'Mean Glenohumeral Elevation'})
+legend('Stroke Baseline','Stroke Post Gesture'...
+    ,'Stroke Post ENT','All Healthy')
+xlabel('Percent Cycle')
+ylabel('Adduction (Deg) \rightarrow')
+% ylim([-60 -10]) %Hammer
+ 
+figure(8)
+plot(stance,S1(:,8),'b-')
+hold on
+plot(stance,S1_Post_Gesture(:,8),'r-')
+hold on
+plot(stance,S1_Post_ENT(:,8),'c-')
+hold on
+plot(stance,Mean_N_s3,'g-')
+hold on
+plot(stance,Mean_N_s3 + N_s3_SD,':k')
+hold on
+plot(stance,Mean_N_s3 - N_s3_SD,':k')
+title({'Slicing Time Points';...
+    'Mean Glenohumeral Axial Rotation'})
+legend('Stroke Baseline','Stroke Post Gesture'...
+    ,'Stroke Post ENT','All Healthy')
+xlabel('Percent Cycle')
+ylabel('Internal Rotation (Deg) \rightarrow')
+ylim([-110 -10]) %Hammer
+ 
+%~~~~~~~All Stroke Subjects (2 SD) vs All Normal Subjects (2 SD)~~~~~~
+figure(1)
+h1a = plot(stance,Mean_S_e1,'r-');
+hold on
+h2a = plot(stance,Mean_S_e1 + S_e1_SD,'pr');
+hold on
+h3a = plot(stance,Mean_S_e1 - S_e1_SD,'pr');
+hold on
+h4a = plot(stance,Mean_N_e1,'k-');
+hold on
+h5a = plot(stance,Mean_N_e1 + N_e1_SD,'-.k');
+hold on
+h6a = plot(stance,Mean_N_e1 - N_e1_SD,'-.k');
+title({'Slicing';'Mean Elbow Flexion/Extension'})
+xlabel('Percent Cycle')
+ylabel('Flexion (Deg) \rightarrow')
+ylim([-50 250]) %Slicing
+% ylim([0 250]) %Hammering
+hasbehavior(h2a,'legend',false); % will remove the 2nd legend entry.
+hasbehavior(h3a,'legend',false); % will remove the 3rd legend entry.
+hasbehavior(h5a,'legend',false); % will remove the 5th legend entry.
+hasbehavior(h6a,'legend',false); % will remove the 6th legend entry.
+legend('Stroke','Healthy')
+ 
+figure(2)
+h1b = plot(stance,Mean_S_e2,'r-');
+hold on
+h2b = plot(stance,Mean_S_e2 + S_e2_SD,'pr');
+hold on
+h3b = plot(stance,Mean_S_e2 - S_e2_SD,'pr');
+hold on
+h4b = plot(stance,Mean_N_e2,'k-');
+hold on
+h5b = plot(stance,Mean_N_e2 + N_e2_SD,'-.k');
+hold on
+h6b = plot(stance,Mean_N_e2 - N_e2_SD,'-.k');
+title({'Slicing';'Mean Elbow Pronation/Supination'})
+xlabel('Percent Cycle')
+ylabel('Pronation (Deg) \rightarrow')
+ylim([35 75]) %Slicing
+% ylim([40 70]) %Hammering
+hasbehavior(h2b,'legend',false); % will remove the 2nd legend entry.
+hasbehavior(h3b,'legend',false); % will remove the 3rd legend entry.
+hasbehavior(h5b,'legend',false); % will remove the 4th legend entry.
+hasbehavior(h6b,'legend',false); % will remove the 5th legend entry.
+legend('Stroke','Healthy')
+ 
+figure(3)
+h1c = plot(stance,Mean_S_w1,'r-');
+hold on
+h2c = plot(stance,Mean_S_w1 + S_w1_SD,'pr');
+hold on
+h3c = plot(stance,Mean_S_w1 - S_w1_SD,'pr');
+hold on
+h4c = plot(stance,Mean_N_w1,'k-');
+hold on
+h5c = plot(stance,Mean_N_w1 + N_w1_SD,'-.k');
+hold on
+h6c = plot(stance,Mean_N_w1 - N_w1_SD,'-.k');
+title({'Slicing';'Mean Wrist Flexion/Extension'})
+xlabel('Percent Cycle')
+ylabel('Flexion (Deg) \rightarrow')
+ylim([-25 25]) %Slicing
+% ylim([-30 25]) %Hammering
+hasbehavior(h2c,'legend',false); % will remove the 2nd legend entry.
+hasbehavior(h3c,'legend',false); % will remove the 3rd legend entry.
+hasbehavior(h5c,'legend',false); % will remove the 4th legend entry.
+hasbehavior(h6c,'legend',false); % will remove the 5th legend entry.
+legend('Stroke','Healthy')
+ 
+figure(4)
+h1d = plot(stance,Mean_S_w2,'r-');
+hold on
+h2d = plot(stance,Mean_S_w2 + S_w2_SD,'pr');
+hold on
+h3d = plot(stance,Mean_S_w2 - S_w2_SD,'pr');
+hold on
+h4d = plot(stance,Mean_N_w2,'k-');
+hold on
+h5d = plot(stance,Mean_N_w2 + N_w2_SD,'-.k');
+hold on
+h6d = plot(stance,Mean_N_w2 - N_w2_SD,'-.k');
+title({'Slicing';'Mean Wrist Adduction/Abduction'})
+xlabel('Percent Cycle')
+ylabel('Abduction (Deg) \rightarrow')
+ylim([0 40]) %Slicing
+% ylim([-60 60]) %Hammering
+hasbehavior(h2d,'legend',false); % will remove the 2nd legend entry.
+hasbehavior(h3d,'legend',false); % will remove the 3rd legend entry.
+hasbehavior(h5d,'legend',false); % will remove the 4th legend entry.
+hasbehavior(h6d,'legend',false); % will remove the 5th legend entry.
+legend('Stroke','Healthy')
+ 
+figure(5)
+h1e = plot(stance,Mean_S_w3,'r-');
+hold on
+h2e = plot(stance,Mean_S_w3 + S_w3_SD,'pr');
+hold on
+h3e = plot(stance,Mean_S_w3 - S_w3_SD,'pr');
+hold on
+h4e = plot(stance,Mean_N_w3,'k-');
+hold on
+h5e = plot(stance,Mean_N_w3 + N_w3_SD,'-.k');
+hold on
+h6e = plot(stance,Mean_N_w3 - N_w3_SD,'-.k');
+title({'Slicing';'Mean Wrist Pronation/Supination'})
+xlabel('Percent Cycle')
+ylabel('Pronation (Deg) \rightarrow')
+ylim([-10 10]) %Slicing
+% ylim([-20 60]) %Hammering
+hasbehavior(h2e,'legend',false); % will remove the 2nd legend entry.
+hasbehavior(h3e,'legend',false); % will remove the 3rd legend entry.
+hasbehavior(h5e,'legend',false); % will remove the 4th legend entry.
+hasbehavior(h6e,'legend',false); % will remove the 5th legend entry.
+legend('Stroke','Healthy')
+ 
+figure(6)
+h1f = plot(stance,Mean_S_s1,'r-');
+hold on
+h2f = plot(stance,Mean_S_s1 + S_s1_SD,'pr');
+hold on
+h3f = plot(stance,Mean_S_s1 - S_s1_SD,'pr');
+hold on
+h4f = plot(stance,Mean_N_s1,'k-');
+hold on
+h5f = plot(stance,Mean_N_s1 + N_s1_SD,'-.k');
+hold on
+h6f = plot(stance,Mean_N_s1 - N_s1_SD,'-.k');
+title({'Slicing';'Mean Glenohumeral Plane of Elevation'})
+xlabel('Percent Cycle')
+ylabel('Flexion (Deg) \rightarrow')
+ylim([-200 150]) %Slicing
+% ylim([-40 60]) %Hammering
+hasbehavior(h2f,'legend',false); % will remove the 2nd legend entry.
+hasbehavior(h3f,'legend',false); % will remove the 3rd legend entry.
+hasbehavior(h5f,'legend',false); % will remove the 4th legend entry.
+hasbehavior(h6f,'legend',false); % will remove the 5th legend entry.
+legend('Stroke','Healthy')
+ 
+figure(7)
+h1g = plot(stance,Mean_S_s2,'r-');
+hold on
+h2g = plot(stance,Mean_S_s2 + S_s2_SD,'pr');
+hold on
+h3g = plot(stance,Mean_S_s2 - S_s2_SD,'pr');
+hold on
+h4g = plot(stance,Mean_N_s2,'k-');
+hold on
+h5g = plot(stance,Mean_N_s2 + N_s2_SD,'-.k');
+hold on
+h6g = plot(stance,Mean_N_s2 - N_s2_SD,'-.k');
+title({'Slicing';'Mean Glenohumeral Elevation'})
+xlabel('Percent Cycle')
+ylabel('Adduction (Deg) \rightarrow')
+% ylim([-60 0]) %Slicing
+ylim([-60 -10]) %Hammering
+hasbehavior(h2g,'legend',false); % will remove the 2nd legend entry.
+hasbehavior(h3g,'legend',false); % will remove the 3rd legend entry.
+hasbehavior(h5g,'legend',false); % will remove the 4th legend entry.
+hasbehavior(h6g,'legend',false); % will remove the 5th legend entry.
+legend('Stroke','Healthy')
+ 
+figure(8)
+h1h = plot(stance,Mean_S_s3,'r-');
+hold on
+h2h = plot(stance,Mean_S_s3 + S_s3_SD,'pr');
+hold on
+h3h = plot(stance,Mean_S_s3 - S_s3_SD,'pr');
+hold on
+h4h = plot(stance,Mean_N_s3,'k-');
+hold on
+h5h = plot(stance,Mean_N_s3 + N_s3_SD,'-.k');
+hold on
+h6h = plot(stance,Mean_N_s3 - N_s3_SD,'-.k');
+title({'Slicing';'Mean Glenohumeral Axial Rotation'})
+xlabel('Percent Cycle')
+ylabel('Internal Rotation (Deg) \rightarrow')
+ylim([-150 150]) %Slicing
+% ylim([-100 0]) %Hammering
+hasbehavior(h2h,'legend',false); % will remove the 2nd legend entry.
+hasbehavior(h3h,'legend',false); % will remove the 3rd legend entry.
+hasbehavior(h5h,'legend',false); % will remove the 4th legend entry.
+hasbehavior(h6h,'legend',false); % will remove the 5th legend entry.
+legend('Stroke','Healthy')
+ 
+
+%~~~~~~~~~~~~~~~~~~~~~Percent Cycle Intersection~~~~~~~~~~~~~~~~~~~~~~~
+%This section calculates the points of intersection for each degree of
+%freedom for Aphasic vs Healthy plots
+%TSTN: TOP SD Stroke & Top SD Normal
+%TSBN: Top SD Stroke & Bottom SD Normal
+%BSTN: Bottom SD Stroke & Top SD Normal
+%BSBN: Bottom SD Stroke & Bottom SD Normal
+%e1,e2,w1,w2,w3,s1,s2,s3: 8 DOF's at the elbow, wrist, shoulder
+%NOTE.......The tolerance is set to 0.3...If '%Cycle' is not found change
+%the tolerance and evaluate the individual DOF your looking for. Change to
+%a selected value..for instance for 's1' Change Case 1's tolerance to 1.7
+%and it will find the root.
+[TSTNe1,TSBNe1,BSTNe1,BSBNe1] = Percent_Cycle_Intersect...
+    (Mean_S_e1, S_e1_SD, Mean_N_e1, N_e1_SD);
+ 
+[TSTNe2,TSBNe2,BSTNe2,BSBNe2] = Percent_Cycle_Intersect...
+    (Mean_S_e2, S_e2_SD, Mean_N_e2, N_e2_SD);
+ 
+[TSTNw1,TSBNw1,BSTNw1,BSBNw1] = Percent_Cycle_Intersect...
+    (Mean_S_w1, S_w1_SD, Mean_N_w1, N_w1_SD);
+ 
+[TSTNw2,TSBNw2,BSTNw2,BSBNw2] = Percent_Cycle_Intersect...
+    (Mean_S_w2, S_w2_SD, Mean_N_w2, N_w2_SD);
+ 
+[TSTNw3,TSBNw3,BSTNw3,BSBNw3] = Percent_Cycle_Intersect...
+    (Mean_S_w3, S_w3_SD, Mean_N_w3, N_w3_SD);
+ 
+[TSTNs1,TSBNs1,BSTNs1,BSBNs1] = Percent_Cycle_Intersect...
+    (Mean_S_s1, S_s1_SD, Mean_N_s1, N_s1_SD);
+ 
+[TSTNs2,TSBNs2,BSTNs2,BSBNs2] = Percent_Cycle_Intersect...
+    (Mean_S_s2, S_s2_SD, Mean_N_s2, N_s2_SD);
+ 
+[TSTNs3,TSBNs3,BSTNs3,BSBNs3] = Percent_Cycle_Intersect...
+    (Mean_S_s3, S_s3_SD, Mean_N_s3, N_s3_SD);
+%._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._
+
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+function [SD] = mean_SD_ALL(MEAN)
+ 
+%Standard deviation of the combined cycles
+SD1 = std(MEAN);
+%95% CI for the elbow
+SD = SD1*1.96;
+%._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._
+
+%This function finds the indices were the standard deviations intersect for
+%overlap. This will be used in the Results section to point out
+%specifically where the intersections occur. There are 4 total cases of
+%possible intersections
+function [xx1,xx2,xx3,xx4] = Percent_Cycle_Intersect(SM, SSD, NM, NSD)
+ 
+%SM: Stroke Mean, SSD: Stroke Standard Deviation, HM: Healthy Mean, HSD:
+%Healthy Standard Deviation
+ 
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Case~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+x1 =(SM + SSD);
+y1 = (NM + NSD);
+ 
+y1a = abs(x1 - y1);
+ 
+xx1=find(y1a>=0 & y1a<=0.3);
+ 
+if isempty(xx1)
+    disp('no TSTN');
+else
+    xx1;
+end
+%._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._
+ 
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Case 2~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+x2 =(SM + SSD);
+y2 = (NM - NSD);
+ 
+y2a = abs(x2 - y2);
+ 
+xx2=find(y2a>=0 & y2a<=0.3);
+ 
+if isempty(xx2)
+    disp('no TSBN');
+else
+    xx2;
+end
+%._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._
+ 
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Case 3~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+x3 =(SM - SSD);
+y3 = (NM + NSD);
+ 
+y3a = abs(x3 - y3);
+ 
+xx3=find(y3a>=0 & y3a<=0.3);
+ 
+if isempty(xx3)
+    disp('no BSTN');
+else
+    xx3;
+end
+%._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._
+ 
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Case 4~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+x4 =(SM - SSD);
+y4 = (NM - NSD);
+ 
+y4a = abs(x4 - y4);
+ 
+xx4=find(y4a>=0 & y4a<=0.3);
+ 
+if isempty(xx4)
+    disp('no BSBN');
+else
+    xx4;
+end
+%._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._
